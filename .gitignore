@@ -1,0 +1,10 @@
+# Python bytecode
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Editor settings
+.vscode/
+
+# Notebook backups/temp files
+challenge/exploration copy.ipynb
