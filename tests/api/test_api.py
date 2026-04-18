@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
 from challenge import app
@@ -7,6 +8,11 @@ from challenge import app
 class TestBatchPipeline(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
+        
+        app.state.model = MagicMock()
+        app.state.model.predict.return_value = [0]
+        with TestClient(app) as client:
+            self.client = client
         
     def test_should_get_predict(self):
         data = {

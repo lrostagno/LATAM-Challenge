@@ -1,4 +1,5 @@
 from typing import Tuple, Union, List
+import joblib
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.exceptions import NotFittedError
@@ -25,6 +26,15 @@ class DelayModel:
         self
     ):
         self._model = LogisticRegression(class_weight='balanced')
+
+    def load(self, path: str) -> None:
+        """
+        Loads the trained model weights from a local file.
+        """
+        try:
+            self._model = joblib.load(path)
+        except Exception as e:
+            raise RuntimeError(f"Failed to load model from {path}: {e}")
 
     def preprocess(
         self,
@@ -104,3 +114,4 @@ class DelayModel:
         except NotFittedError:
             # fallback for tests
             return [-1] * len(features)
+        
