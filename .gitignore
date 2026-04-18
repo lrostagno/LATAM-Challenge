@@ -8,3 +8,17 @@
 
 # Notebook backups/temp files
 challenge/exploration copy.ipynb
+
+# Coverage and Testing
+.coverage
+htmlcov/
+coverage.xml
+.pytest_cache/
+
+# Joblib and Data
+*.joblib
+joblib_memmap/
+
+# Reports and Artifacts
+reports/
+*.log
