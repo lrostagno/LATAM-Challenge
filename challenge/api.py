@@ -10,6 +10,15 @@ logger = logging.getLogger("uvicorn.error")
 app = FastAPI()
 
 
+VALID_OPERA = [
+    'American Airlines', 'Air Canada', 'Air France', 'Aeromexico',
+    'Aerolineas Argentinas', 'Austral', 'Avianca', 'Alitalia',
+    'British Airways', 'Copa Air', 'Delta Air', 'Gol Trans', 'Iberia',
+    'K.L.M.', 'Qantas Airways', 'United Airlines', 'Grupo LATAM',
+    'Sky Airline', 'Latin American Wings', 'Plus Ultra Lineas Aereas',
+    'JetSmart SPA', 'Oceanair Linhas Aereas', 'Lacsa'
+]
+
 @app.on_event("startup")
 async def startup():
     """
@@ -67,12 +76,7 @@ async def post_predict(data: dict, request: Request) -> dict:
         if "TIPOVUELO" in df and not df["TIPOVUELO"].isin(["N", "I"]).all():
             raise ValueError("Invalid TIPOVUELO")
 
-        if "OPERA" in df and not df["OPERA"].isin([
-            "Aerolineas Argentinas",
-            "LATAM Airlines Group",
-            "Sky Airline",
-            "JetSmart SPA"
-        ]).all():
+        if "OPERA" in df and not df["OPERA"].isin(VALID_OPERA).all():
             raise ValueError("Invalid OPERA")
 
         features = model.preprocess(df)
