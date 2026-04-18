@@ -1,0 +1,39 @@
+name: 'Continuous Delivery'
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: 'projects/YOUR_PROJECT_NUMBER/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: 'github-actions-sa@latamchallengerostagno.iam.gserviceaccount.com'
+
+      - name: Deploy to Cloud Run
+        run: |
+          # Define the service name based on the branch
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            SERVICE_NAME="flight-delay-api"
+          else
+            SERVICE_NAME="flight-delay-api-dev"
+          fi
+
+          gcloud run deploy $SERVICE_NAME \
+            --project latamchallengerostagno \
+            --source . \
+            --region us-central1 \
+            --allow-unauthenticated \
+            --set-env-vars MODEL_BUCKET=bucket-latam-challenge
