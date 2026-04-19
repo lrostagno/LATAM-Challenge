@@ -1,64 +1,41 @@
-### Part I: Model Implementation
-
-Among the candidate models, both XGBoost and Logistic Regression showed comparable performance according to the original analysis, with no significant differences in the evaluation metrics. Given this, **Logistic Regression was selected** due to its simplicity, interpretability, and lower computational cost, which are desirable properties in a production environment. A simpler model reduces maintenance overhead and makes debugging and monitoring more straightforward.
-
-Additionally, the model was trained using only the top 10 most important features, as this reduction did not negatively impact performance while improving efficiency.
-
-Regarding class imbalance, the original implementation used manually computed class weights. This was replaced with `class_weight="balanced`, which provides an equivalent weighting scheme in a more robust and less error-prone way. This change simplifies the code while preserving the intended behavior of improving recall for the minority class.
-
-Overall, the final selected model is a Logistic Regression trained on the top 10 features with automatic class balancing enabled.
+# Software Engineer (ML & LLMs) Challenge
 
 
-### Part II: API Deployment with FastAPI
+## Part I: Model Implementation
+
+Among the candidate models, **Logistic Regression was selected** due to its simplicity, interpretability, and lower computational cost, which are highly desirable properties for an API-driven production environment. 
+
+The model was trained using the top 10 most important features, which maintained performance while improving computational efficiency. To address class imbalance, `class_weight="balanced"` was utilized natively within the model, providing a robust weighting scheme that improves the minority class recall without the need for manual distribution calculations.
+
+## Part II: API Deployment with FastAPI
 
 For this part, the model was deployed as an API using **FastAPI**.
 
-#### Training and Model Storage
-
-A `train.py` script was added to handle the training process. It trains the selected Logistic Regression model, serializes it with `joblib`, and uploads the artifact (`model.joblib`) to a GCS bucket. 
-
-#### Model Loading
-
-The model is loaded during the API startup:
-- It is downloaded from GCS.
-- Stored temporarily in `/tmp`.
-- Loaded into memory using the `DelayModel` class.
-
-This ensures low latency during inference, since the model is ready before handling requests.
-
-#### API Design
-
-The `/predict` endpoint:
-- Parses the input into a pandas DataFrame.
-- Applies preprocessing and generates predictions using the model.
-
-Basic input validations were added (e.g., valid `MES`, `TIPOVUELO`, and `OPERA`) to ensure the API passes the tests. In a production environment, more comprehensive validation would be required.
-
-#### Testing
-
-For testing, the model loading and prediction were mocked to avoid dependency on GCS and ensure deterministic results:
+- **Training and Model Storage:** A `train.py` script was added to handle the training process. It trains the selected Logistic Regression model, serializes it with `joblib`, and uploads the artifact (`model.joblib`) to a GCS bucket.
+- **Model Loading:** The model is downloaded from GCS and loaded into memory during the API's startup event. This ensures the model is ready before handling any traffic.
+- **API Design & Validation:** The `/predict` endpoint parses the input into a Pandas DataFrame and applies basic data validations (e.g., verifying valid `MES`, `TIPOVUELO`, and `OPERA`). In a true production environment, more comprehensive validation would be implemented to strictly enforce schemas and valid data ranges for all 10 features.
+- **Testing:** The tests were modified to mock the model loading and prediction processes. This isolates the API routing logic and ensures deterministic results without relying on external infrastructure:
 
 ```python
-app.state.model = MagicMock()
-app.state.model.predict.return_value = [0]
-with TestClient(app) as client:
-    self.client = client
+with patch("challenge.api.startup", return_value=None):
+    self.client = TestClient(app)
+    app.state.model = MagicMock()
+    app.state.model.predict.return_value = [0]
 ```
 
 
-### Part III: Deployment
+## Part III: Deployment
 
-For the final part, the API was deployed using **Google Cloud Run**, a fully managed service that allows running containerized applications without managing servers. It automatically handles scaling, networking, and infrastructure, making it well-suited for lightweight ML inference services.
+The application was deployed using **Google Cloud Run**, providing a fully managed, scalable, serverless environment. 
 
-#### Containerization
+The deployment leverages containerization and was executed directly from the source using the `gcloud run deploy` command. Required environment variables, such as the `MODEL_BUCKET` name, are injected dynamically at runtime to allow the API to fetch the latest model artifact from GCS.
 
-The application was containerized using Docker. Instead of manually building and pushing the image, the deployment was performed directly from the source code using the following command:
 
-```bash
-gcloud run deploy flight-delay-api \
-    --project latamchallengerostagno \
-    --source . \
-    --region us-central1 \
-    --allow-unauthenticated \
-    --set-env-vars MODEL_BUCKET=bucket-latam-challenge
-```
+## Part IV: CI/CD Implementation
+
+A continuous integration and delivery pipeline was implemented using **GitHub Actions**. To ensure a structured and safe development lifecycle, **GitFlow** development practices were adopted throughout the project.
+
+- **Continuous Integration (CI):** Triggered on every **Pull Request** to `develop` or `main`. The workflow sets up a `Python 3.11` environment, installs all application and testing dependencies via `pip`, and executes the `pytest` suite. This ensures that code integrity is validated and no regressions are introduced before merging.
+- **Continuous Delivery (CD):** Triggered on every **push** to the `main` branch. It automates the production release by performing the following:
+    1. **Authentication:** Securely connects to Google Cloud using Workload Identity Federation (WIF), eliminating the need for static JSON service account keys.
+    2. **Automated Deployment:** Executes the `gcloud run deploy` command to build the container and update the `flight-delay-api` service. This ensures the live production environment is always synchronized with the verified state of the `main` branch.
