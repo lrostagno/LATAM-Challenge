@@ -4,20 +4,15 @@ import pandas as pd
 from fastapi import FastAPI, Request, HTTPException
 from google.cloud import storage
 from challenge.model import DelayModel
+from challenge.constants import (
+    VALID_OPERA, VALID_TIPOVUELO, BUCKET_NAME, 
+    MODEL_FILE_NAME, LOCAL_MODEL_PATH
+)
 
 logger = logging.getLogger("uvicorn.error")
 
 app = FastAPI()
 
-
-VALID_OPERA = [
-    'American Airlines', 'Air Canada', 'Air France', 'Aeromexico',
-    'Aerolineas Argentinas', 'Austral', 'Avianca', 'Alitalia',
-    'British Airways', 'Copa Air', 'Delta Air', 'Gol Trans', 'Iberia',
-    'K.L.M.', 'Qantas Airways', 'United Airlines', 'Grupo LATAM',
-    'Sky Airline', 'Latin American Wings', 'Plus Ultra Lineas Aereas',
-    'JetSmart SPA', 'Oceanair Linhas Aereas', 'Lacsa'
-]
 
 @app.on_event("startup")
 async def startup():
@@ -29,21 +24,17 @@ async def startup():
 
     app.state.model = DelayModel()
 
-    bucket_name = os.getenv("MODEL_BUCKET", "bucket-latam-challenge")
-    model_file = "model.joblib"
-    local_path = "/tmp/model.joblib"
-
     try:
-        logger.info(f"Connecting to GCS bucket: {bucket_name}")
+        logger.info(f"Connecting to GCS bucket: {BUCKET_NAME}")
 
         client = storage.Client()
-        bucket = client.bucket(bucket_name)
-        blob = bucket.blob(model_file)
+        bucket = client.bucket(BUCKET_NAME)
+        blob = bucket.blob(MODEL_FILE_NAME)
 
-        blob.download_to_filename(local_path)
-        logger.info(f"Model downloaded to {local_path}")
+        blob.download_to_filename(LOCAL_MODEL_PATH)
+        logger.info(f"Model downloaded to {LOCAL_MODEL_PATH}")
 
-        app.state.model.load(local_path)
+        app.state.model.load(LOCAL_MODEL_PATH)
         logger.info("Model loaded into memory successfully")
 
     except Exception as e:
@@ -73,7 +64,7 @@ async def post_predict(data: dict, request: Request) -> dict:
         if "MES" in df and not df["MES"].between(1, 12).all():
             raise ValueError("Invalid MES")
 
-        if "TIPOVUELO" in df and not df["TIPOVUELO"].isin(["N", "I"]).all():
+        if "TIPOVUELO" in df and not df["TIPOVUELO"].isin(VALID_TIPOVUELO).all():
             raise ValueError("Invalid TIPOVUELO")
 
         if "OPERA" in df and not df["OPERA"].isin(VALID_OPERA).all():
