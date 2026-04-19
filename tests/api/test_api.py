@@ -1,12 +1,20 @@
 import unittest
+from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
 from challenge import app
 
 
 class TestBatchPipeline(unittest.TestCase):
+    
     def setUp(self):
-        self.client = TestClient(app)
+        # Patch the startup function so it does nothing
+        with patch("challenge.api.startup", return_value=None):
+            self.client = TestClient(app)
+            
+            # Manually inject the mock model since startup was skipped
+            app.state.model = MagicMock()
+            app.state.model.predict.return_value = [0]
         
     def test_should_get_predict(self):
         data = {
