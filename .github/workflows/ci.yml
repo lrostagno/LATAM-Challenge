@@ -25,4 +25,4 @@ jobs:
           pip install -r requirements-test.txt
 
       - name: Run tests
-        run: pytest tests/model/test_model.py
+        run: pytest

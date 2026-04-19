@@ -4,12 +4,12 @@ import joblib
 from typing import Tuple
 from sklearn.model_selection import train_test_split
 from google.cloud import storage
-from model import DelayModel
+from challenge.model import DelayModel
+from challenge.constants import BUCKET_NAME, MODEL_FILE_NAME, TARGET_COLUMN
 
 # Configuration
 DATA_PATH = "data/data.csv"
-MODEL_OUTPUT = "model.joblib"
-BUCKET_NAME = os.getenv("MODEL_BUCKET", "bucket-latam-challenge")
+MODEL_OUTPUT = MODEL_FILE_NAME
 
 def load_and_prep_data(path: str) -> pd.DataFrame:
     """Loads raw CSV data."""
@@ -35,7 +35,7 @@ def run_training_pipeline() -> None:
     model_wrapper = DelayModel()
     
     # 3. Preprocess
-    features, target = model_wrapper.preprocess(data=raw_data, target_column="delay")
+    features, target = model_wrapper.preprocess(data=raw_data, target_column=TARGET_COLUMN)
     
     # 4. Split Data
     x_train, x_test, y_train, y_test = train_test_split(

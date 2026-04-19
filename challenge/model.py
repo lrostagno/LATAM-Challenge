@@ -4,23 +4,11 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.exceptions import NotFittedError
 from sklearn.utils.validation import check_is_fitted
+from challenge.constants import FEATURES_COLS, DELAY_THRESHOLD_MINUTES, CATEGORICAL_COLS
 
 
 
 class DelayModel:
-
-    FEATURES_COLS = [
-        "OPERA_Latin American Wings", 
-        "MES_7",
-        "MES_10",
-        "OPERA_Grupo LATAM",
-        "MES_12",
-        "TIPOVUELO_I",
-        "MES_4",
-        "MES_11",
-        "OPERA_Sky Airline",
-        "OPERA_Copa Air"
-    ]
 
     def __init__(
         self
@@ -59,19 +47,19 @@ class DelayModel:
         if target_column:
             df[target_column] = (
                 pd.to_datetime(df["Fecha-O"]) - pd.to_datetime(df["Fecha-I"])
-            ).dt.total_seconds() / 60 > 15
+            ).dt.total_seconds() / 60 > DELAY_THRESHOLD_MINUTES
 
             df[target_column] = df[target_column].astype(int)
 
         # One-hot encoding
-        df = pd.get_dummies(df, columns=["OPERA", "TIPOVUELO", "MES"])
+        df = pd.get_dummies(df, columns=CATEGORICAL_COLS)
 
         # Ensure all required columns exist
-        for col in self.FEATURES_COLS:
+        for col in FEATURES_COLS:
             if col not in df.columns:
                 df[col] = 0
 
-        features = df[self.FEATURES_COLS]
+        features = df[FEATURES_COLS]
 
         if target_column:
             target = df[[target_column]]
